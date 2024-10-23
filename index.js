@@ -26,11 +26,26 @@ async function filterResponse(req, res, next) {
         if (authData.token) {
             const token = authData.token;
 
-            // Obtener parámetros del body
-            const { pagina, query, precio } = req.body;
+            // Obtener la query obligatoria y los otros parámetros opcionales
+            const { query, pagina, precio } = req.body;
 
-            // Construir la URL con parámetros de búsqueda (sin 'disponible')
-            const searchUrl = `https://tupi.com.py/api-legacy/v1/buscar?pagina=${pagina}&query=${query}&precio=${precio}`;
+            // Verificar que 'query' exista, ya que es obligatorio
+            if (!query) {
+                return res.status(400).json({ message: 'El parámetro "query" es obligatorio.' });
+            }
+
+            // Construir la URL base con la query
+            let searchUrl = `https://tupi.com.py/api-legacy/v1/buscar?query=${query}`;
+
+            // Agregar 'pagina' si está presente
+            if (pagina) {
+                searchUrl += `&pagina=${pagina}`;
+            }
+
+            // Agregar 'precio' si está presente
+            if (precio) {
+                searchUrl += `&precio=${precio}`;
+            }
 
             // Realizar la búsqueda con el token de autenticación
             const dataResponse = await fetch(searchUrl, {
@@ -39,6 +54,7 @@ async function filterResponse(req, res, next) {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json',
                     'Accept': '*/*',
+                    'User-Agent': 'Thunder Client (https://www.thunderclient.com)'
                 }
             });
 
