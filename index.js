@@ -39,7 +39,6 @@ async function filterResponse(req, res, next) {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'application/json',
                     'Accept': '*/*',
-                    'User-Agent': 'Thunder Client (https://www.thunderclient.com)'
                 }
             });
 
