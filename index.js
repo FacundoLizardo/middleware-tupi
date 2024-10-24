@@ -26,7 +26,10 @@ async function filterResponse(req, res) {
         const authData = await authResponse.json();
 
         if (!authData.token) {
-            return res.status(401).json({ message: 'No se pudo obtener el token de autenticación', authData: authData });
+            return res.status(401).json({ message: 'No se pudo obtener el token de autenticación', 
+                authData: authData, 
+                USER: process.env.USER, 
+                PASSWORD: process.env.PASSWORD });
         }
 
         const token = authData.token;
