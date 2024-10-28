@@ -31,15 +31,37 @@ async function filterResponse(req, res) {
 
         const token = authData.token;
 
-        // Obtener la query obligatoria y los otros parámetros opcionales de la URL
-        const { query, pagina, precio } = req.query;
+        // Obtener los parámetros de la URL
+        const { query, pagina, precio, id } = req.query;
 
-        // Verificar que 'query' exista, ya que es obligatorio
+        // Si el parámetro 'id' está presente, hacer una solicitud específica de producto
+        if (id) {
+            const productUrl = `https://tupi.com.py/api-legacy/v1/producto?id=${id}`;
+            const productResponse = await fetch(productUrl, {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': '*/*',
+                    'User-Agent': 'Neural Genius'
+                }
+            });
+
+            let productData = await productResponse.json();
+            
+            // Remover propiedades innecesarias
+            const { es_disponible, es_combo, vigencia_desde, vencimiento, composicion, feria, peso, largo, alto, ancho, rubro, familia, linea, ...filteredProductData } = productData;
+
+            // Enviar la respuesta del producto sin las propiedades excluidas
+            return res.json(filteredProductData);
+        }
+
+        // Verificar que 'query' exista, ya que es obligatorio si 'id' no está presente
         if (!query) {
             return res.status(400).json({ message: 'El parámetro "query" es obligatorio.' });
         }
 
-        // Construir la URL base con la query
+        // Construir la URL base para la búsqueda general
         let searchUrl = `https://tupi.com.py/api-legacy/v1/buscar?query=${query}`;
 
         // Agregar 'pagina' si está presente
@@ -52,14 +74,14 @@ async function filterResponse(req, res) {
             searchUrl += `&precio=${precio}`;
         }
 
-        // Realizar la búsqueda con el token de autenticación
+        // Realizar la búsqueda general con el token de autenticación
         const dataResponse = await fetch(searchUrl, {
             method: 'GET',
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json',
                 'Accept': '*/*',
-                'User-Agent': 'Thunder Client (https://www.thunderclient.com)'
+                'User-Agent': 'Neural Genius'
             }
         });
 
@@ -69,7 +91,7 @@ async function filterResponse(req, res) {
         const filteredData = data.data.map(item => ({
             id: item.id,
             producto: item.producto,
-            precios: item.precios.filter(precio => precio.mostrar === true), // Filtrar precios con 'mostrar: true'
+            precios: item.precios.filter(precio => precio.mostrar === true),
             img: item.img,
             link: item.link
         }));
