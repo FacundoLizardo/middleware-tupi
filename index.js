@@ -48,9 +48,16 @@ async function filterResponse(req, res) {
             });
 
             let productData = await productResponse.json();
-            
-            // Remover propiedades innecesarias
+
+            // Remover propiedades innecesarias del producto y filtrar precios sin 'cod_feria'
             const { es_disponible, es_combo, vigencia_desde, vencimiento, composicion, feria, peso, largo, alto, ancho, rubro, familia, linea, ...filteredProductData } = productData;
+
+            if (filteredProductData.precios) {
+                filteredProductData.precios = filteredProductData.precios.map(({ cod_feria, mostrar, ...rest }) => {
+                    console.log(cod_feria);
+                    
+                    return rest});
+            }
 
             // Enviar la respuesta del producto sin las propiedades excluidas
             return res.json(filteredProductData);
@@ -87,11 +94,11 @@ async function filterResponse(req, res) {
 
         const data = await dataResponse.json();
 
-        // Filtrar la respuesta para devolver solo los campos solicitados
+        // Filtrar la respuesta general para devolver solo los campos solicitados y eliminar 'cod_feria' en precios
         const filteredData = data.data.map(item => ({
             id: item.id,
             producto: item.producto,
-            precios: item.precios.filter(precio => precio.mostrar === true),
+            precios: item.precios.filter(precio => precio.mostrar === true).map(({ cod_feria, ...rest }) => rest),
             img: item.img,
             link: item.link
         }));
