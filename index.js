@@ -146,11 +146,13 @@ async function filterResponse(req, res) {
 
 async function getConversationId(req, res) {
     const { messages } = req.body;
+    const api_key = process.env.API_KEY;
+    
   try {
     // Paso 1: Obtener los IDs de las conversaciones
     const options = {
       method: "GET",
-      headers: { Authorization: "Bearer cf3d4713-f54b-4704-941a-b58f8297927a" },
+      headers: { Authorization: `Bearer ${api_key}` },
     };
 
     const response = await fetch(
