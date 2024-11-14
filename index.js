@@ -147,6 +147,7 @@ async function filterResponse(req, res) {
 async function getConversationId(req, res) {
     const { messages } = req.body;
     const api_key = process.env.API_KEY;
+    console.log({messages});
     
   try {
     // Paso 1: Obtener los IDs de las conversaciones
@@ -222,6 +223,8 @@ async function getConversationId(req, res) {
       (result) => result.isFullMatch
     );
 
+    console.log({bestMatch},{matchingConversations});
+    
     // Paso 5: Devolver la coincidencia completa o la conversación con mayor coincidencia
     res.json({
       bestMatch:
