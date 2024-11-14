@@ -145,12 +145,13 @@ async function filterResponse(req, res) {
 }
 
 async function getConversationId(req, res) {
-    const { messages } = req.body;
-    const api_key = process.env.API_KEY;
-    console.log({messages});
-    
+  const { messages } = req.body;
+  const api_key = process.env.API_KEY;
+  const thinkchatToken = process.env.THINKCHAT_TOKEN;
+  console.log({ messages });
+
   try {
-    // Paso 1: Obtener los IDs de las conversaciones
+    // Paso 1 y 2: Obtener las conversaciones y contar coincidencias (código existente)
     const options = {
       method: "GET",
       headers: { Authorization: `Bearer ${api_key}` },
@@ -162,7 +163,6 @@ async function getConversationId(req, res) {
     );
     const conversations = await response.json();
 
-    // Paso 2: Para cada conversationId, obtener sus mensajes y contar coincidencias
     const comparisonResults = await Promise.all(
       conversations.map(async (conversation) => {
         const conversationMessagesResponse = await fetch(
@@ -171,7 +171,6 @@ async function getConversationId(req, res) {
         );
         const conversationMessages = await conversationMessagesResponse.json();
 
-        // Agrupar los mensajes de la conversación y los del body por tipo (agent o human)
         const conversationAgents = conversationMessages.filter(
           (msg) => msg.from === "agent"
         );
@@ -182,21 +181,17 @@ async function getConversationId(req, res) {
         const bodyAgents = messages.filter((msg) => msg.agent);
         const bodyHumans = messages.filter((msg) => msg.human);
 
-        // Contar coincidencias en mensajes de tipo 'agent'
         const agentMatches = bodyAgents.reduce((count, bodyMsg, index) => {
           const convMsg = conversationAgents[index];
           if (convMsg && convMsg.text === bodyMsg.agent) {
-            console.log("Agente coincide:", convMsg.text, bodyMsg.agent);
             return count + 1;
           }
           return count;
         }, 0);
 
-        // Contar coincidencias en mensajes de tipo 'human'
         const humanMatches = bodyHumans.reduce((count, bodyMsg, index) => {
           const convMsg = conversationHumans[index];
           if (convMsg && convMsg.text === bodyMsg.human) {
-            console.log("Humano coincide:", convMsg.text, bodyMsg.human);
             return count + 1;
           }
           return count;
@@ -213,7 +208,6 @@ async function getConversationId(req, res) {
       })
     );
 
-    // Encontrar la conversación con el mayor número de coincidencias o coincidencia completa
     const bestMatch = comparisonResults.reduce(
       (max, result) => (result.totalMatches > max.totalMatches ? result : max),
       { totalMatches: 0 }
@@ -223,12 +217,37 @@ async function getConversationId(req, res) {
       (result) => result.isFullMatch
     );
 
-    console.log({bestMatch},{matchingConversations});
-    
-    // Paso 5: Devolver la coincidencia completa o la conversación con mayor coincidencia
+    const selectedConversation =
+      matchingConversations.length > 0
+        ? matchingConversations[0].conversationId
+        : bestMatch.conversationId;
+
+    console.log({ selectedConversation });
+
+    // Paso 6: Enviar la conversación al nuevo endpoint
+    const postResponse = await fetch(
+      "https://tupi.whatsapp.net.py/thinkcomm-x/integrations/bot/",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "chat_to_queue",
+          token: thinkchatToken,
+          source: "595974321000",
+          id_conversation: selectedConversation,
+        }),
+      }
+    );
+
+    console.log({postResponse});
+
+    const postResult = await postResponse.json();
     res.json({
       bestMatch:
         matchingConversations.length > 0 ? matchingConversations : bestMatch,
+      postResult,
     });
   } catch (error) {
     console.error("Error al obtener las conversaciones:", error);
